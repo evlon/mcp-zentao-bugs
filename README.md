@@ -51,10 +51,13 @@ pnpm install
 ### 3. 启动服务器
 
 ```bash
-# 生产模式
+# 方式1: 使用 npx (推荐)
+npx mcp-zentao-bugs
+
+# 方式2: 本地安装后运行
 pnpm start
 
-# 开发模式（文件变化自动重启）
+# 方式3: 开发模式（文件变化自动重启）
 pnpm dev
 ```
 

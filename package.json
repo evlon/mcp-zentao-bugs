@@ -4,6 +4,9 @@
   "description": "MCP server for ZenTao via FastMCP (HTTP stream + SSE)",
   "type": "module",
   "main": "src/mcp-server.mjs",
+  "bin": {
+    "mcp-zentao-bugs": "src/mcp-server.mjs"
+  },
   "scripts": {
     "start": "node -r dotenv/config src/mcp-server.mjs",
     "dev": "node -r dotenv/config --watch src/mcp-server.mjs"
