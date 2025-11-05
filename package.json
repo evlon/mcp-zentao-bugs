@@ -1,0 +1,28 @@
+{
+  "name": "mcp-zentao-bugs",
+  "version": "1.0.0",
+  "description": "MCP server for ZenTao via FastMCP (HTTP stream + SSE)",
+  "type": "module",
+  "main": "src/mcp-server.mjs",
+  "scripts": {
+    "start": "node -r dotenv/config src/mcp-server.mjs",
+    "dev": "node -r dotenv/config --watch src/mcp-server.mjs"
+  },
+  "keywords": [
+    "mcp",
+    "sse",
+    "zentao",
+    "fastmcp"
+  ],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.14.0",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "dotenv": "^16.6.1",
+    "fastmcp": "3.22.0",
+    "zod": "^3.25.76"
+  }
+}
