@@ -178,6 +178,88 @@ pnpm dev
 2. 确认传入的参数格式正确
 3. 查看服务器日志中的错误信息
 
+## 发布到 npmjs
+
+### 发布前准备
+
+1. **注册 npm 账号**
+   ```bash
+   npm adduser
+   # 或使用现有账号: npm login
+   ```
+
+2. **检查项目状态**
+   ```bash
+   # 运行发布前检查
+   npm run pre-release
+   
+   # 或手动检查
+   ./scripts/publish.sh patch --dry-run
+   ```
+
+### 发布流程
+
+#### 方式1: 使用发布脚本 (推荐)
+
+```bash
+# 发布补丁版本
+./scripts/publish.sh patch
+
+# 发布次要版本
+./scripts/publish.sh minor
+
+# 发布主要版本
+./scripts/publish.sh major
+```
+
+#### 方式2: 使用 npm 命令
+
+```bash
+# 发布补丁版本
+npm run release:patch
+
+# 发布次要版本
+npm run release:minor
+
+# 发布主要版本
+npm run release:major
+```
+
+#### 方式3: 手动发布
+
+```bash
+# 1. 更新版本
+npm version patch
+
+# 2. 发布
+npm publish
+
+# 3. 推送标签
+git push && git push --tags
+```
+
+### 发布脚本功能
+
+- **自动检查**: 检查项目状态、依赖、文件完整性
+- **版本管理**: 自动更新版本号并创建 git tag
+- **安全发布**: 检查 npm 登录状态和包名可用性
+- **跨平台支持**: 提供 bash 和 Windows batch 脚本
+
+### 版本管理策略
+
+- **patch**: 修复 bug，向后兼容 (1.0.0 → 1.0.1)
+- **minor**: 新增功能，向后兼容 (1.0.0 → 1.1.0)
+- **major**: 重大变更，可能不兼容 (1.0.0 → 2.0.0)
+
+### 发布检查清单
+
+- [ ] 测试通过 (`npm test`)
+- [ ] README.md 更新完整
+- [ ] 版本号已更新
+- [ ] 所有更改已提交
+- [ ] npm 账号已登录
+- [ ] 包名可用性检查
+
 ## 许可证
 
 ISC License

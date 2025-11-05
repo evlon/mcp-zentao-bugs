@@ -9,7 +9,21 @@
   },
   "scripts": {
     "start": "node -r dotenv/config src/mcp-server.mjs",
-    "dev": "node -r dotenv/config --watch src/mcp-server.mjs"
+    "dev": "node -r dotenv/config --watch src/mcp-server.mjs",
+    "prepublish": "node scripts/pre-publish.js",
+    "prepublishOnly": "npm run test",
+    "prepare": "npm run build",
+    "build": "echo 'No build step required for this project'",
+    "test": "echo 'No tests yet' && exit 0",
+    "lint": "echo 'No linter configured' && exit 0",
+    "version": "npm run build && git add -A",
+    "postversion": "git push && git push --tags",
+    "prepack": "npm run build",
+    "release:patch": "npm version patch && npm publish",
+    "release:minor": "npm version minor && npm publish",
+    "release:major": "npm version major && npm publish",
+    "pre-release": "node scripts/pre-publish.js",
+    "publish:dry-run": "npm pack"
   },
   "keywords": [
     "mcp",
@@ -19,6 +33,20 @@
   ],
   "author": "",
   "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/your-username/mcp-zentao-bugs.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-username/mcp-zentao-bugs/issues"
+  },
+  "homepage": "https://github.com/your-username/mcp-zentao-bugs#readme",
+  "files": [
+    "src/",
+    "api-docs/",
+    "README.md",
+    ".env.example"
+  ],
   "packageManager": "pnpm@10.14.0",
   "engines": {
     "node": ">=20.0.0"
