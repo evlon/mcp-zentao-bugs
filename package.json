@@ -35,12 +35,12 @@
   "license": "ISC",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/your-username/mcp-zentao-bugs.git"
+    "url": "git+https://github.com/evlon/mcp-zentao-bugs.git"
   },
   "bugs": {
-    "url": "https://github.com/your-username/mcp-zentao-bugs/issues"
+    "url": "https://github.com/evlon/mcp-zentao-bugs/issues"
   },
-  "homepage": "https://github.com/your-username/mcp-zentao-bugs#readme",
+  "homepage": "https://github.com/evlon/mcp-zentao-bugs#readme",
   "files": [
     "src/",
     "api-docs/",
