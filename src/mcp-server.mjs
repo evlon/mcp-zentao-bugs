@@ -47,64 +47,124 @@ const server = new FastMCP({
 
 // Tools
 server.addTool({
-  name: 'searchProductBugs',
-  description: '智能搜索产品和BUG：如果搜索到1个产品，直接返回该产品的BUG列表；如果搜索到多个产品，返回产品列表供用户选择。默认只返回状态为"激活"的BUG，除非指定 allStatuses=true 才返回所有状态',
+  name: 'searchProducts',
+  description: '搜索产品列表。用于查看有哪些可用的产品，帮助选择精确的产品名称',
   parameters: z.object({ 
-    keyword: z.string(),
-    bugKeyword: z.string().optional(),
-    productId: z.number().optional(),
-    allStatuses: z.boolean().optional().default(false)
+    keyword: z.string().optional().describe('产品名称关键词，不提供则返回所有产品'),
+    limit: z.number().optional().default(20).describe('返回数量限制，默认20条')
   }),
-  annotations: { title: 'Search Product Bugs', readOnlyHint: true, openWorldHint: true },
-  execute: async (args, { log, streamContent }) => {
+  annotations: { title: 'Search Products', readOnlyHint: true, openWorldHint: true },
+  execute: async (args, { log }) => {
     return await new Promise((resolve) => {
       enqueue(async () => {
         try {
-          const kw = (args.keyword || '').trim();
-          if (!kw) throw new UserError('keyword 不能为空');
+          log.info('正在搜索产品...');
           
-          log.info('正在智能搜索产品和BUG...');
+          const products = await zentaoAPI.searchProducts(args.keyword || '', args.limit);
           
-          const result = await zentaoAPI.searchProductBugs(kw, {
-            bugKeyword: args.bugKeyword,
-            productId: args.productId,
-            allStatuses: args.allStatuses
+          resolve({ 
+            content: [{ 
+              type: 'text', 
+              text: JSON.stringify({ 
+                products,
+                count: products.length,
+                keyword: args.keyword || '',
+                message: `找到 ${products.length} 个产品${args.keyword ? `（关键词: ${args.keyword}）` : ''}`
+              }) 
+            }] 
+          });
+        } catch (err) {
+          resolve({ 
+            content: [{ 
+              type: 'text', 
+              text: JSON.stringify({ 
+                error: err instanceof UserError ? err.message : String(err?.message || err) 
+              }) 
+            }] 
+          });
+        }
+      });
+    });
+  },
+});
+
+server.addTool({
+  name: 'getMyBug',
+  description: '获取指定产品的一个BUG详情（指派给我的激活BUG）。这是最常用的工具，直接返回BUG的完整详情，而不是列表。使用产品名称而不是ID，更符合业务习惯',
+  parameters: z.object({ 
+    productName: z.string().describe('产品名称（必需）'),
+    keyword: z.string().optional().describe('BUG标题关键词，用于快速定位特定类型的BUG')
+  }),
+  annotations: { title: 'Get My Bug', readOnlyHint: true, openWorldHint: true },
+  execute: async (args, { log }) => {
+    return await new Promise((resolve) => {
+      enqueue(async () => {
+        try {
+          log.info(`正在获取产品 "${args.productName}" 的BUG详情...`);
+          
+          const result = await zentaoAPI.getBugByProductName(args.productName, {
+            keyword: args.keyword
           });
           
-          // 根据返回结果类型生成不同的日志信息
-          if (result.product && result.bugs) {
-            await streamContent({ 
+          resolve({ 
+            content: [{ 
               type: 'text', 
-              text: `找到产品 "${result.product.name}"，BUG搜索完成\n` 
-            });
-            resolve({ 
-              content: [{ 
-                type: 'text', 
-                text: JSON.stringify(result) 
-              }] 
-            });
-          } else if (result.bugs) {
-            await streamContent({ type: 'text', text: 'BUG搜索完成\n' });
-            resolve({ 
-              content: [{ 
-                type: 'text', 
-                text: JSON.stringify(result) 
-              }] 
-            });
-          } else if (result.products) {
-            await streamContent({ 
+              text: JSON.stringify({ 
+                bug: result.bug,
+                product: result.product,
+                message: `已获取产品 "${result.product.name}" 的BUG详情`
+              }) 
+            }] 
+          });
+        } catch (err) {
+          resolve({ 
+            content: [{ 
               type: 'text', 
-              text: `找到 ${result.products.length} 个产品，请选择具体产品\n` 
-            });
-            resolve({ 
-              content: [{ 
-                type: 'text', 
-                text: JSON.stringify(result) 
-              }] 
-            });
-          } else {
-            throw new Error('未知的搜索结果格式');
-          }
+              text: JSON.stringify({ 
+                error: err instanceof UserError ? err.message : String(err?.message || err) 
+              }) 
+            }] 
+          });
+        }
+      });
+    });
+  },
+});
+
+server.addTool({
+  name: 'getMyBugs',
+  description: '获取指派给我的BUG列表（默认只返回激活状态）。用于查看需要处理的BUG列表。必须指定产品ID以保持专注',
+  parameters: z.object({ 
+    productId: z.number().describe('指定产品ID（必需）'),
+    keyword: z.string().optional().describe('BUG标题关键词搜索'),
+    allStatuses: z.boolean().optional().default(false).describe('是否返回所有状态的BUG，默认false只返回激活状态'),
+    limit: z.number().optional().default(10).describe('返回数量限制，默认10条')
+  }),
+  annotations: { title: 'Search Product Bugs', readOnlyHint: true, openWorldHint: true },
+  execute: async (args, { log }) => {
+    return await new Promise((resolve) => {
+      enqueue(async () => {
+        try {
+          log.info('正在获取指派给我的BUG...');
+          
+          const bugs = await zentaoAPI.searchBugs(args.productId, {
+            keyword: args.keyword,
+            allStatuses: args.allStatuses,
+            assignedToMe: true,
+            limit: args.limit
+          });
+          
+          resolve({ 
+            content: [{ 
+              type: 'text', 
+              text: JSON.stringify({ 
+                bugs,
+                count: bugs.length,
+                assignedToMe: true,
+                activeOnly: !args.allStatuses
+              }) 
+            }] 
+          });
         } catch (err) {
           resolve({ 
             content: [{ 
@@ -163,6 +223,106 @@ server.addTool({
           
           const result = await zentaoAPI.markBugResolved(args.bugId, args.comment);
           resolve({ content: [{ type: 'text', text: JSON.stringify({ bug: result }) }] });
+        } catch (err) {
+          resolve({ 
+            content: [{ 
+              type: 'text', 
+              text: JSON.stringify({ 
+                error: err instanceof UserError ? err.message : String(err?.message || err) 
+              }) 
+            }] 
+          });
+        }
+      });
+    });
+  },
+});
+
+server.addTool({
+  name: 'getNextBug',
+  description: '获取下一个需要处理的BUG（指派给我的激活BUG）。使用 for yield 生成器模式，高效找到第一个匹配的BUG后立即返回。这是开始工作时最常用的工具。必须指定产品ID以保持专注',
+  parameters: z.object({ 
+    productId: z.number().describe('指定产品ID（必需）'),
+    keyword: z.string().optional().describe('BUG标题关键词，用于快速定位特定类型的BUG')
+  }),
+  annotations: { title: 'Get Next Bug', readOnlyHint: true, openWorldHint: true },
+  execute: async (args, { log }) => {
+    return await new Promise((resolve) => {
+      enqueue(async () => {
+        try {
+          log.info('正在获取下一个需要处理的BUG...');
+          
+          // 直接在指定产品中查找
+          const bug = await zentaoAPI.searchFirstActiveBug(args.productId, {
+            keyword: args.keyword,
+            assignedToMe: true
+          });
+          
+          if (bug) {
+            resolve({ 
+              content: [{ 
+                type: 'text', 
+                text: JSON.stringify({ bug }) 
+              }] 
+            });
+          } else {
+            resolve({ 
+              content: [{ 
+                type: 'text', 
+                text: JSON.stringify({ 
+                  message: '该产品中没有指派给你的激活BUG',
+                  bug: null 
+                }) 
+              }] 
+            });
+          }
+        } catch (err) {
+          resolve({ 
+            content: [{ 
+              type: 'text', 
+              text: JSON.stringify({ 
+                error: err instanceof UserError ? err.message : String(err?.message || err) 
+              }) 
+            }] 
+          });
+        }
+      });
+    });
+  },
+});
+
+server.addTool({
+  name: 'getBugStats',
+  description: '获取BUG统计信息：指派给我的BUG总数、激活状态数量等。用于了解工作量和进度。必须指定产品ID以保持专注',
+  parameters: z.object({ 
+    productId: z.number().describe('指定产品ID（必需）'),
+    activeOnly: z.boolean().optional().default(true).describe('是否只统计激活状态BUG，默认true')
+  }),
+  annotations: { title: 'Get Bug Statistics', readOnlyHint: true, openWorldHint: true },
+  execute: async (args, { log }) => {
+    return await new Promise((resolve) => {
+      enqueue(async () => {
+        try {
+          log.info('正在获取BUG统计信息...');
+          
+          const result = await zentaoAPI.searchBugsWithTotal(args.productId, {
+            activeOnly: args.activeOnly,
+            assignedToMe: true
+          });
+          
+          resolve({ 
+            content: [{ 
+              type: 'text', 
+              text: JSON.stringify({ 
+                total: result.total,
+                hasMore: result.hasMore,
+                preview: result.bugs.slice(0, 5), // 只显示前5个作为预览
+                assignedToMe: true,
+                activeOnly: args.activeOnly,
+                productId: args.productId
+              }) 
+            }] 
+          });
         } catch (err) {
           resolve({ 
             content: [{ 

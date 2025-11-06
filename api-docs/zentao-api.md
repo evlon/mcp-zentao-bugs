@@ -120,9 +120,10 @@ page=1&limit=20&program=6&status=normal
 | id   | 产品 ID（数字） |
 
 #### 查询参数（选填）
+##### 备注，不支持 status=assigntome 指派给我的BUG， openedbyme 我打开的BUG
 
 ```
-page=1&limit=20&status=active&severity=3
+page=1&limit=20&status=assigntome/openedbyme
 ```
 
 #### 200 响应字段节选
@@ -159,7 +160,7 @@ page=1&limit=20&status=active&severity=3
       "severity": 3,
       "pri": 0,
       "type": "",
-      "status": { "code": "active", "name": "激活" },
+      "status": { "code": "active", "name": "激活" } | "active" | "resolved" | "closed",
       "openedBy": { "id": 1, "account": "admin", "realname": "管理员" },
       "openedDate": "2021-12-01T01:25:42Z",
       "steps": ""

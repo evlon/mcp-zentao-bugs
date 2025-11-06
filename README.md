@@ -18,9 +18,105 @@
 
 | 工具名 | 参数 | 描述 |
 |--------|------|------|
-| `searchProductBugs` | `keyword: string`, `bugKeyword?: string`, `productId?: number`, `allStatuses?: boolean` | **智能搜索**：如果搜索到1个产品，直接返回该产品的BUG列表；如果搜索到多个产品，返回产品列表供用户选择。**默认只返回状态为"激活"的BUG**，设置 `allStatuses=true` 可返回所有状态 |
-| `getBugDetail` | `bugId: number` | 返回 Bug 全字段 + 原始 HTML 步骤 + 提取的图片URL列表 |
-| `markBugResolved` | `bugId: number`, `comment?: string` | 把 Bug 置为已解决（resolution=fixed） |
+| `searchProducts` | `keyword?: string`, `limit?: number` | **搜索产品**：查看有哪些可用的产品，帮助选择精确的产品名称。支持关键词搜索 |
+| `getMyBug` | `productName: string`, `keyword?: string` | **获取我的BUG详情**：获取指定产品的一个BUG详情（指派给我的激活BUG）。**这是最常用的工具**，直接返回BUG的完整详情，而不是列表。**使用产品名称而不是ID，更符合业务习惯** |
+| `getMyBugs` | `productId: number`, `keyword?: string`, `allStatuses?: boolean`, `limit?: number` | **获取我的BUG列表**：获取指派给我的BUG列表（**默认只返回激活状态**）。用于查看需要处理的BUG列表。**必须指定产品ID以保持专注** |
+| `getNextBug` | `productId: number`, `keyword?: string` | **获取下一个BUG**：获取下一个需要处理的BUG（指派给我的激活BUG）。使用 **for yield 生成器模式**，高效找到第一个匹配的BUG后立即返回。**必须指定产品ID以保持专注** |
+| `getBugStats` | `productId: number`, `activeOnly?: boolean` | **BUG统计**：获取指派给我的BUG统计信息（总数、激活数量等）。用于了解工作量和进度。**必须指定产品ID以保持专注** |
+| `getBugDetail` | `bugId: number` | **BUG详情**：返回 Bug 全字段 + 原始 HTML 步骤 + 提取的图片URL列表 |
+| `markBugResolved` | `bugId: number`, `comment?: string` | **标记已解决**：把 Bug 置为已解决（resolution=fixed） |
+
+### 典型工作流程
+
+#### 🔄 日常BUG处理流程
+
+**步骤1：查看可用产品（可选）**
+```json
+{
+  "keyword": "电商",
+  "limit": 10
+}
+```
+- 🔍 **产品发现**：查看有哪些可用的产品
+- 📝 **精确命名**：获取准确的产品名称，避免模糊匹配
+
+**步骤2：获取一个BUG的完整详情**
+```json
+{
+  "productName": "电商平台",
+  "keyword": "登录"
+}
+```
+- 🎯 **精准定位**：通过产品名称自动找到指派给你的第一个激活BUG
+- 📋 **完整详情**：直接返回BUG的完整信息，无需额外调用
+- ⚡ **高效搜索**：使用产品名称，更符合业务习惯
+- 🔍 **精确匹配**：如果找到多个产品会提示用户选择，确保准确性
+
+**步骤3：标记为已解决**
+```json
+{
+  "bugId": 123,
+  "comment": "已修复登录页面显示问题"
+}
+```
+- ✅ **快速解决**：一键标记BUG为已解决状态
+
+**步骤4：继续下一个**
+重复步骤2，处理下一个BUG...
+
+#### 📊 其他工具使用场景
+
+**查看BUG列表（批量操作时）**
+```json
+{
+  "productId": 1,
+  "limit": 20,
+  "keyword": "界面"
+}
+```
+
+**查看BUG统计**
+```json
+{
+  "productId": 1,
+  "activeOnly": true
+}
+```
+
+#### 📊 工作量管理
+
+**查看我的BUG统计**
+```json
+{
+  "productId": 1,
+  "activeOnly": true
+}
+```
+- 📈 **工作量统计**：了解当前有多少激活BUG需要处理
+- 📋 **优先级排序**：按严重程度自动排序
+
+**查看我的BUG列表**
+```json
+{
+  "productId": 1,
+  "limit": 20,
+  "keyword": "界面"
+}
+```
+- 📝 **批量查看**：获取指派给你的BUG列表
+- 🔍 **关键词搜索**：快速定位特定类型的BUG
+
+#### 🎯 工具优势
+
+- **🎯 默认指派给我**：所有工具默认只查询指派给你的BUG，减少干扰
+- **⚡ 默认激活状态**：默认只显示激活状态的BUG，专注待处理任务
+- **🏷️ 产品名称友好**：主要工具支持使用产品名称而不是ID，更符合业务习惯
+- **📋 直接返回详情**：`getMyBug` 直接返回BUG的完整详情，减少调用步骤
+- **🔍 精确匹配验证**：模糊搜索产品时，如果找到多个产品会提示用户选择，确保准确性
+- **🔒 必须指定产品**：所有工具都要求指定产品，确保一段时间内专注一个产品
+- **🔄 流程优化**：工具设计完全符合"获取→处理→解决→下一个"的工作流程
+- **💰 流量节省**：使用生成器模式，找到即停止，避免不必要的数据传输
+- **📊 智能统计**：提供准确的工作量统计，便于进度管理
 
 ### 图片提取功能
 

@@ -1,0 +1,36 @@
+GET https://platform.onecode.cmict.cloud/zentao/api.php/v1/products/862/bugs?page=2&limit=1
+Content-Type: 'application/json', 
+Token: b550c37ef42c650c4f9b15ef8374bd27
+
+###
+
+GET https://platform.onecode.cmict.cloud/zentao/api.php/v1/products/862/bugs?page=1&limit=10&status=openedbyme
+Content-Type: 'application/json', 
+Token: b550c37ef42c650c4f9b15ef8374bd27
+###
+
+GET https://platform.onecode.cmict.cloud/zentao/api.php/v1/products/862/bugs?page=1&limit=10&status=assigntome
+Content-Type: 'application/json', 
+Token: b550c37ef42c650c4f9b15ef8374bd27
+
+###
+GET https://platform.onecode.cmict.cloud/zentao/api.php/v1/products/862/bugs?status=assigntome
+Content-Type: 'application/json', 
+Token: b550c37ef42c650c4f9b15ef8374bd27
+
+
+
+
+###
+GET https://platform.onecode.cmict.cloud/zentao/api-getsessionid.json
+Content-Type: 'application/json', 
+Token: b550c37ef42c650c4f9b15ef8374bd27
+
+###
+GET https://platform.onecode.cmict.cloud/zentao/user-login.json?account=niukunliang&password=Oa@@7152&zentaosid=b550c37ef42c650c4f9b15ef8374bd27
+
+######
+GET https://platform.onecode.cmict.cloud/zentao/project-bug-862.json?zentaosid=b550c37ef42c650c4f9b15ef8374bd27
+
+###
+GET https://platform.onecode.cmict.cloud/zentao/index.php?m=company&f=browse&t=json&zentaosid=b550c37ef42c650c4f9b15ef8374bd27
