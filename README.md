@@ -5,18 +5,18 @@
 ## 功能特性
 
 - 🔐 **自动登录** - 启动时自动登录禅道并持有 Token
-- 🔍 **产品搜索** - 模糊搜索禅道产品
+- 🧠 **智能搜索** - 一步完成产品和BUG搜索：找到唯一产品时直接返回BUG列表，多个产品时提供选择
 - 🐛 **Bug 管理** - 查询产品下的 Bug、获取详情、标记解决
 - 📡 **SSE 流式传输** - 通过 Server-Sent Events 实时推送日志和结果
 - 🔄 **串行处理** - 单进程队列处理，确保工具调用有序执行
 - 🚀 **FastMCP 标准** - 兼容 MCP 协议，支持 HTTP Streaming 和 SSE
+- 📉 **流量优化** - 智能合并搜索步骤，减少API调用和数据传输
 
 ## 工具列表
 
 | 工具名 | 参数 | 描述 |
 |--------|------|------|
-| `fuzzySearchProducts` | `keyword: string` | 模糊匹配产品名，返回 ≤10 条 |
-| `fuzzySearchBugs` | `productId: number`, `keyword?: string`, `allStatuses?: boolean` | 返回产品下按标题模糊匹配的 Bug，≤10 条。**默认只返回状态为"激活"的BUG**，设置 `allStatuses=true` 可返回所有状态 |
+| `searchProductBugs` | `keyword: string`, `bugKeyword?: string`, `productId?: number`, `allStatuses?: boolean` | **智能搜索**：如果搜索到1个产品，直接返回该产品的BUG列表；如果搜索到多个产品，返回产品列表供用户选择。**默认只返回状态为"激活"的BUG**，设置 `allStatuses=true` 可返回所有状态 |
 | `getBugDetail` | `bugId: number` | 返回 Bug 全字段 + 原始 HTML 步骤 |
 | `markBugResolved` | `bugId: number`, `comment?: string` | 把 Bug 置为已解决（resolution=fixed） |
 
@@ -116,9 +116,15 @@ curl http://localhost:3000/health
 ```
 ├── src/
 │   ├── mcp-server.mjs     # FastMCP 服务器主文件
+│   ├── zentao-api.mjs     # 禅道 API 封装模块
 │   └── server.mjs         # 原始 SSE 服务器（备用）
+├── scripts/               # 发布和工具脚本
+│   ├── publish.sh         # Linux/macOS 发布脚本
+│   ├── publish.bat        # Windows 发布脚本
+│   └── pre-publish.js     # 发布前检查脚本
 ├── api-docs/              # API 文档
 ├── .env                   # 环境变量配置
+├── .env.example           # 环境变量模板
 ├── package.json
 └── README.md
 ```
@@ -157,6 +163,7 @@ pnpm dev
 - **Node.js 20+** - 运行时环境
 - **Zod** - 参数验证
 - **dotenv** - 环境变量管理
+- **模块化架构** - 禅道API独立封装，便于维护和测试
 
 ## 故障排除
 
