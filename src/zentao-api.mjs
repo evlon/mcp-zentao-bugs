@@ -143,124 +143,71 @@ export class ZenTaoAPI {
     
     // productId现在是必需参数，不再支持0表示所有产品
     
-    // 获取BUG数据，不在API层面过滤status
-    const url = new URL(`${this.baseUrl}/api.php/v1/products/${productId}/bugs`);
-    url.searchParams.set('page', '1');
-    url.searchParams.set('limit', '100');
+    // 注意：禅道API的分页问题是当超出最大页数时，返回的页码与请求的页码不一致
+    // 我们需要逐页获取数据，直到获取足够的数据或到达最后一页
+    let allBugs = [];
+    let page = 1;
+    const maxPages = 50; // 设置最大页数限制，防止无限循环
     
-    // 如果只查询指派给我的BUG
-    if (assignedToMe) {
-      url.searchParams.set('status', 'assigntome');
-    }
-    
-    const resp = await fetch(url, { headers: this.getAuthHeaders() });
-    if (!resp.ok) {
-      throw new Error(`GET /products/${productId}/bugs failed: ${resp.status}`);
-    }
-    
-    const data = await resp.json();
-    let bugs = Array.isArray(data.bugs) ? data.bugs : [];
-    
-    // 如果只需要激活的BUG，需要获取更多数据来确保有足够的激活BUG
-    if (!allStatuses) {
-      let page = 2;
-      const maxPages = 5; // 最多获取5页，避免无限循环
+    while (allBugs.length < limit && page <= maxPages) {
+      const url = new URL(`${this.baseUrl}/api.php/v1/products/${productId}/bugs`);
+      url.searchParams.set('page', page.toString());
+      url.searchParams.set('limit', '100'); // 每页100条数据
       
-      // 先过滤当前页面的激活BUG
-      let activeBugs = bugs.filter(b => {
-        const status = String(b.status || '').toLowerCase();
-        return status === 'active';
-      });
+      // 如果只查询指派给我的BUG
+      if (assignedToMe) {
+        url.searchParams.set('status', 'assigntome');
+      }
       
-      // 如果激活BUG不够，继续获取更多页面
-      while (activeBugs.length < limit && page <= maxPages) {
-        const nextPageUrl = new URL(`${this.baseUrl}/api.php/v1/products/${productId}/bugs`);
-        nextPageUrl.searchParams.set('page', page.toString());
-        nextPageUrl.searchParams.set('limit', '100');
-        
-        // 如果只查询指派给我的BUG
-        if (assignedToMe) {
-          nextPageUrl.searchParams.set('status', 'assigntome');
-        }
-        
-        const nextResp = await fetch(nextPageUrl, { headers: this.getAuthHeaders() });
-        if (!nextResp.ok) break;
-        
-        const nextData = await nextResp.json();
-        const nextBugs = Array.isArray(nextData.bugs) ? nextData.bugs : [];
-        
-        if (nextBugs.length === 0) break; // 没有更多数据了
-        
-        bugs = bugs.concat(nextBugs);
-        
-        // 更新激活BUG数量
-        activeBugs = bugs.filter(b => {
-          const status = String(b.status || '').toLowerCase();
-          return status === 'active';
-        });
-        
-        page++;
+      const resp = await fetch(url, { headers: this.getAuthHeaders() });
+      if (!resp.ok) {
+        throw new Error(`GET /products/${productId}/bugs failed: ${resp.status}`);
       }
-    } else {
-      // 如果需要所有状态的BUG，按原来的逻辑分页
-      if (bugs.length < limit) {
-        let page = 2;
-        const maxPages = 5; // 最多获取5页，避免无限循环
-        
-        while (bugs.length < limit && page <= maxPages) {
-          const nextPageUrl = new URL(`${this.baseUrl}/api.php/v1/products/${productId}/bugs`);
-          nextPageUrl.searchParams.set('page', page.toString());
-          nextPageUrl.searchParams.set('limit', '100');
-          
-          // 如果只查询指派给我的BUG
-          if (assignedToMe) {
-            nextPageUrl.searchParams.set('status', 'assigntome');
-          }
-          
-          const nextResp = await fetch(nextPageUrl, { headers: this.getAuthHeaders() });
-          if (!nextResp.ok) break;
-          
-          const nextData = await nextResp.json();
-          const nextBugs = Array.isArray(nextData.bugs) ? nextData.bugs : [];
-          
-          if (nextBugs.length === 0) break; // 没有更多数据了
-          
-          bugs = bugs.concat(nextBugs);
-          page++;
-        }
+      
+      const data = await resp.json();
+      const bugs = Array.isArray(data.bugs) ? data.bugs : [];
+      
+      // 检查分页是否有效：如果返回的页码与请求的页码不一致，说明已超出最大页数
+      if (data.page && data.page !== page) {
+        break; // 已到达最后一页
       }
+      
+      // 如果当前页没有数据，说明已到最后一页
+      if (bugs.length === 0) {
+        break;
+      }
+      
+      allBugs = allBugs.concat(bugs);
+      
+      // 如果当前页数据少于limit，说明已到最后一页
+      if (bugs.length < 100) {
+        break;
+      }
+      
+      page++;
     }
     
-    // 按标题关键词筛选
+    // 关键词过滤
     if (keyword) {
-      const kw = String(keyword).toLowerCase();
-      bugs = bugs.filter(b => 
-        String(b.title || '').toLowerCase().includes(kw)
+      allBugs = allBugs.filter(b => 
+        String(b.title || '').toLowerCase().includes(keyword.toLowerCase())
       );
     }
     
-    // 如果只需要激活的BUG，在客户端进行状态过滤
+    // 状态过滤
     if (!allStatuses) {
-      bugs = bugs.filter(b => {
-        const status = b.status;
+      allBugs = allBugs.filter(b => {
+        const status = String(b.status || '').toLowerCase();
         // 处理status可能是对象或字符串的情况
-        if (typeof status === 'object' && status.code) {
-          return status.code === 'active';
+        if (typeof b.status === 'object' && b.status.code) {
+          return b.status.code.toLowerCase() === 'active';
         }
-        return String(status || '').toLowerCase() === 'active';
+        return status === 'active';
       });
     }
     
-    bugs = bugs.slice(0, limit);
-    
-    // 精简返回字段
-    return bugs.map(b => ({
-      id: b.id,
-      title: b.title,
-      severity: b.severity,
-      status: b.status,
-      assignedTo: b.assignedTo?.realname || b.assignedTo?.account
-    }));
+    // 限制返回数量
+    return allBugs.slice(0, limit);
   }
 
   /**
@@ -275,7 +222,7 @@ export class ZenTaoAPI {
     const { keyword = '', assignedToMe = false } = options;
     
     let page = 1;
-    const maxPages = 10; // 最多搜索10页
+    const maxPages = 50; // 最多搜索50页
     
     while (page <= maxPages) {
       const url = new URL(`${this.baseUrl}/api.php/v1/products/${productId}/bugs`);
@@ -295,7 +242,48 @@ export class ZenTaoAPI {
       const data = await resp.json();
       const bugs = Array.isArray(data.bugs) ? data.bugs : [];
       
+      // 检查分页是否有效：如果返回的页码与请求的页码不一致，说明已超出最大页数
+      if (data.page && data.page !== page) {
+        break; // 已到达最后一页
+      }
+      
       if (bugs.length === 0) break; // 没有更多数据了
+      
+      // 如果当前页数据少于limit，说明已到最后一页
+      if (bugs.length < 50) {
+        // 处理完当前页的数据后退出
+        for (const bug of bugs) {
+          // 处理status可能是对象或字符串的情况
+          let isActive = false;
+          const status = bug.status;
+          
+          if (typeof status === 'object' && status.code) {
+            isActive = status.code === 'active';
+          } else {
+            isActive = String(status || '').toLowerCase() === 'active';
+          }
+          
+          if (isActive) {
+            // 如果有关键词，检查标题是否匹配
+            if (keyword) {
+              const kw = String(keyword).toLowerCase();
+              if (!String(bug.title || '').toLowerCase().includes(kw)) {
+                continue;
+              }
+            }
+            
+            // yield 匹配的BUG
+            yield {
+              id: bug.id,
+              title: bug.title,
+              severity: bug.severity,
+              status: bug.status,
+              assignedTo: bug.assignedTo?.realname || bug.assignedTo?.account
+            };
+          }
+        }
+        break; // 最后一页处理完毕，退出循环
+      }
       
       // yield 每一个激活的BUG
       for (const bug of bugs) {
@@ -437,7 +425,7 @@ export class ZenTaoAPI {
     const { keyword = '', activeOnly = false, assignedToMe = false } = options;
     
     let page = 1;
-    const maxPages = 10; // 最多检查10页来计算总数
+    const maxPages = 50; // 最多检查50页来计算总数
     let totalCount = 0;
     
     while (page <= maxPages) {
@@ -455,6 +443,11 @@ export class ZenTaoAPI {
       
       const data = await resp.json();
       const bugs = Array.isArray(data.bugs) ? data.bugs : [];
+      
+      // 检查分页是否有效：如果返回的页码与请求的页码不一致，说明已超出最大页数
+      if (data.page && data.page !== page) {
+        break; // 已到达最后一页
+      }
       
       if (bugs.length === 0) break;
       
