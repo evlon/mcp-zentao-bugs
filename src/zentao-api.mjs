@@ -90,9 +90,15 @@ export class ZenTaoAPI {
   async searchBugs(productId, options = {}) {
     const { keyword = '', allStatuses = false, limit = 10 } = options;
     
+    // 如果只需要激活的BUG，直接在API查询时指定status参数
     const url = new URL(`${this.baseUrl}/api.php/v1/products/${productId}/bugs`);
     url.searchParams.set('page', '1');
     url.searchParams.set('limit', '100');
+    
+    // 如果只需要激活的BUG，在API层面过滤，提高效率
+    if (!allStatuses) {
+      url.searchParams.set('status', 'active');
+    }
     
     const resp = await fetch(url, { headers: this.getAuthHeaders() });
     if (!resp.ok) {
@@ -102,12 +108,29 @@ export class ZenTaoAPI {
     const data = await resp.json();
     let bugs = Array.isArray(data.bugs) ? data.bugs : [];
     
-    // 默认只返回状态为"激活"的BUG
-    if (!allStatuses) {
-      bugs = bugs.filter(b => {
-        const status = b.status?.name || b.status?.code || b.status;
-        return status === 'active' || status === '激活' || status === 'Active';
-      });
+    // 如果API层面过滤后仍然没有足够的激活BUG，可能需要获取更多数据
+    if (!allStatuses && bugs.length < limit) {
+      // 尝试获取更多页面，直到找到足够的激活BUG或达到最大页数
+      let page = 2;
+      const maxPages = 5; // 最多获取5页，避免无限循环
+      
+      while (bugs.length < limit && page <= maxPages) {
+        const nextPageUrl = new URL(`${this.baseUrl}/api.php/v1/products/${productId}/bugs`);
+        nextPageUrl.searchParams.set('page', page.toString());
+        nextPageUrl.searchParams.set('limit', '100');
+        nextPageUrl.searchParams.set('status', 'active');
+        
+        const nextResp = await fetch(nextPageUrl, { headers: this.getAuthHeaders() });
+        if (!nextResp.ok) break;
+        
+        const nextData = await nextResp.json();
+        const nextBugs = Array.isArray(nextData.bugs) ? nextData.bugs : [];
+        
+        if (nextBugs.length === 0) break; // 没有更多数据了
+        
+        bugs = bugs.concat(nextBugs);
+        page++;
+      }
     }
     
     // 按标题关键词筛选
@@ -131,6 +154,31 @@ export class ZenTaoAPI {
   }
 
   /**
+   * 从HTML内容中提取图片URL
+   * @param {string} htmlContent - HTML内容
+   * @returns {Array<string>} 图片URL数组
+   */
+  extractImagesFromHtml(htmlContent) {
+    if (!htmlContent || typeof htmlContent !== 'string') {
+      return [];
+    }
+    
+    // 使用正则表达式匹配img标签的src属性
+    const imgRegex = /<img[^>]+src\s*=\s*["']([^"']+)["'][^>]*>/gi;
+    const images = [];
+    let match;
+    
+    while ((match = imgRegex.exec(htmlContent)) !== null) {
+      const src = match[1];
+      if (src && src.startsWith('http')) {
+        images.push(src);
+      }
+    }
+    
+    return images;
+  }
+
+  /**
    * 获取BUG详情
    * @param {number} bugId - BUG ID
    * @returns {Promise<Object>} BUG详情
@@ -147,6 +195,9 @@ export class ZenTaoAPI {
     
     const bug = await resp.json();
     
+    // 从steps中提取图片
+    const stepsImages = this.extractImagesFromHtml(bug.steps);
+    
     // 精简返回字段
     return {
       id: bug.id,
@@ -155,6 +206,7 @@ export class ZenTaoAPI {
       priority: bug.pri,
       status: bug.status,
       steps: bug.steps,
+      stepsImages: stepsImages,
       assignedTo: bug.assignedTo,
       openedBy: bug.openedBy,
       product: bug.product,

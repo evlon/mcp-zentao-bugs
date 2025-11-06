@@ -7,6 +7,8 @@
 - 🔐 **自动登录** - 启动时自动登录禅道并持有 Token
 - 🧠 **智能搜索** - 一步完成产品和BUG搜索：找到唯一产品时直接返回BUG列表，多个产品时提供选择
 - 🐛 **Bug 管理** - 查询产品下的 Bug、获取详情、标记解决
+- 🖼️ **图片提取** - 自动从BUG步骤中提取图片URL，便于查看截图
+- 🎯 **精准搜索** - API层面过滤激活BUG，自动翻页确保获取足够的活跃BUG
 - 📡 **SSE 流式传输** - 通过 Server-Sent Events 实时推送日志和结果
 - 🔄 **串行处理** - 单进程队列处理，确保工具调用有序执行
 - 🚀 **FastMCP 标准** - 兼容 MCP 协议，支持 HTTP Streaming 和 SSE
@@ -17,8 +19,30 @@
 | 工具名 | 参数 | 描述 |
 |--------|------|------|
 | `searchProductBugs` | `keyword: string`, `bugKeyword?: string`, `productId?: number`, `allStatuses?: boolean` | **智能搜索**：如果搜索到1个产品，直接返回该产品的BUG列表；如果搜索到多个产品，返回产品列表供用户选择。**默认只返回状态为"激活"的BUG**，设置 `allStatuses=true` 可返回所有状态 |
-| `getBugDetail` | `bugId: number` | 返回 Bug 全字段 + 原始 HTML 步骤 |
+| `getBugDetail` | `bugId: number` | 返回 Bug 全字段 + 原始 HTML 步骤 + 提取的图片URL列表 |
 | `markBugResolved` | `bugId: number`, `comment?: string` | 把 Bug 置为已解决（resolution=fixed） |
+
+### 图片提取功能
+
+`getBugDetail` 工具现在支持自动从BUG步骤中提取图片：
+
+```json
+{
+  "bug": {
+    "id": 123,
+    "title": "登录页面显示异常",
+    "steps": "<p>步骤1：打开登录页面</p><p><img src=\"https://example.com/screenshot.png\" /></p>",
+    "stepsImages": [
+      "https://example.com/screenshot.png"
+    ]
+  }
+}
+```
+
+**特性**：
+- 🖼️ **自动识别** - 从HTML内容中提取所有`<img>`标签的`src`属性
+- 🔗 **URL过滤** - 只返回HTTP/HTTPS开头的有效图片链接
+- 📋 **独立存储** - 图片URL单独存储在`stepsImages`数组中，便于访问 |
 
 ## 快速开始
 
