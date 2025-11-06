@@ -2,6 +2,50 @@
 
 基于 FastMCP 的禅道 Bug 管理 MCP 服务器，提供产品搜索、Bug 查询和解决功能。
 
+## 🚀 快速开始
+
+### 安装
+
+```bash
+npm install -g mcp-zentao-bugs
+```
+
+### 配置与运行
+
+#### 方法1: 设置环境变量
+```bash
+export ZENTAO_BASE_URL="https://your-zentao.com"
+export ZENTAO_ACCOUNT="your-username"
+export ZENTAO_PASSWORD="your-password"
+mcp-zentao-bugs
+```
+
+#### 方法2: 使用 .env 文件
+```bash
+# 在当前目录创建 .env 文件
+echo "ZENTAO_BASE_URL=https://your-zentao.com" > .env
+echo "ZENTAO_ACCOUNT=your-username" >> .env
+echo "ZENTAO_PASSWORD=your-password" >> .env
+mcp-zentao-bugs
+```
+
+> 💡 **提示**：全局安装后，`.env` 文件会自动被加载，无需额外配置。
+
+#### 方法3: 一次性设置
+```bash
+ZENTAO_BASE_URL="https://your-zentao.com" \
+ZENTAO_ACCOUNT="your-username" \
+ZENTAO_PASSWORD="your-password" \
+mcp-zentao-bugs
+```
+
+### 命令行选项
+
+```bash
+mcp-zentao-bugs --help      # 显示帮助信息
+mcp-zentao-bugs --version   # 显示版本信息
+```
+
 ## 功能特性
 
 - 🔐 **自动登录** - 启动时自动登录禅道并持有 Token

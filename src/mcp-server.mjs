@@ -1,16 +1,116 @@
 #!/usr/bin/env node
 
+// 自动加载 .env 文件（如果存在）
+try {
+  await import('dotenv').then(dotenv => {
+    const result = dotenv.config();
+    if (result.error && result.error.code !== 'ENOENT') {
+      console.warn('⚠️  Warning: Failed to load .env file:', result.error.message);
+    }
+  });
+} catch (error) {
+  // dotenv 包不存在时忽略（全局安装可能没有 dotenv）
+}
+
 import { FastMCP, UserError } from 'fastmcp';
 import { z } from 'zod';
 import { ZenTaoAPI } from './zentao-api.mjs';
 
+// ---- Help & Version ----
+function showHelp() {
+  console.log(`
+🐛 mcp-zentao-bugs - 禅道 Bug 管理 MCP 服务器
+
+📖 使用方法:
+  mcp-zentao-bugs                    # 使用环境变量启动
+  mcp-zentao-bugs --help            # 显示帮助信息
+  mcp-zentao-bugs --version         # 显示版本信息
+
+⚙️  环境变量:
+  ZENTAO_BASE_URL    禅道服务器地址 (必需)
+  ZENTAO_ACCOUNT     禅道账号 (必需)
+  ZENTAO_PASSWORD    禅道密码 (必需)
+  PORT               服务器端口 (可选，默认 3000)
+
+🚀 启动示例:
+  # 方法1: 设置环境变量
+  export ZENTAO_BASE_URL="https://your-zentao.com"
+  export ZENTAO_ACCOUNT="your-username"
+  export ZENTAO_PASSWORD="your-password"
+  mcp-zentao-bugs
+
+  # 方法2: 使用 .env 文件
+  echo "ZENTAO_BASE_URL=https://your-zentao.com" > .env
+  echo "ZENTAO_ACCOUNT=your-username" >> .env
+  echo "ZENTAO_PASSWORD=your-password" >> .env
+  mcp-zentao-bugs
+
+  # 方法3: 一次性设置
+  ZENTAO_BASE_URL="https://your-zentao.com" \\
+  ZENTAO_ACCOUNT="your-username" \\
+  ZENTAO_PASSWORD="your-password" \\
+  mcp-zentao-bugs
+
+📚 更多信息: https://github.com/your-username/mcp-zentao-bugs#readme
+`);
+}
+
+async function showVersion() {
+  const packageJson = await import('../package.json', { with: { type: 'json' } });
+  console.log(`mcp-zentao-bugs v${packageJson.default.version}`);
+}
+
+// 检查命令行参数
+async function handleCliArgs() {
+  const args = process.argv.slice(2);
+  if (args.includes('--help') || args.includes('-h')) {
+    showHelp();
+    process.exit(0);
+  }
+
+  if (args.includes('--version') || args.includes('-v')) {
+    await showVersion();
+    process.exit(0);
+  }
+}
+
+await handleCliArgs();
+
 // ---- Env & Config ----
-const REQUIRED_ENVS = ['ZENTAO_BASE_URL', 'ZENTAO_ACCOUNT', 'ZENTAO_PASSWORD', 'PORT'];
+const REQUIRED_ENVS = ['ZENTAO_BASE_URL', 'ZENTAO_ACCOUNT', 'ZENTAO_PASSWORD'];
+
+// 检查必需的环境变量
+const missingEnvs = [];
 for (const k of REQUIRED_ENVS) {
   if (!process.env[k] || String(process.env[k]).trim() === '') {
-    console.error(`ENV ${k} is required`);
-    process.exit(1);
+    missingEnvs.push(k);
   }
+}
+
+// 如果缺少必需的环境变量，显示使用提示
+if (missingEnvs.length > 0) {
+  console.error('❌ 缺少必需的环境变量:', missingEnvs.join(', '));
+  console.error('\n📖 使用说明:');
+  console.error('方法1: 设置环境变量');
+  console.error('  export ZENTAO_BASE_URL="https://your-zentao.com"');
+  console.error('  export ZENTAO_ACCOUNT="your-username"');
+  console.error('  export ZENTAO_PASSWORD="your-password"');
+  console.error('  export PORT="3000"  # 可选，默认3000');
+  console.error('  mcp-zentao-bugs');
+  console.error('\n方法2: 使用 .env 文件');
+  console.error('  echo "ZENTAO_BASE_URL=https://your-zentao.com" > .env');
+  console.error('  echo "ZENTAO_ACCOUNT=your-username" >> .env');
+  console.error('  echo "ZENTAO_PASSWORD=your-password" >> .env');
+  console.error('  echo "PORT=3000" >> .env');
+  console.error('  mcp-zentao-bugs');
+  console.error('\n方法3: 一次性设置');
+  console.error('  ZENTAO_BASE_URL="https://your-zentao.com" \\');
+  console.error('  ZENTAO_ACCOUNT="your-username" \\');
+  console.error('  ZENTAO_PASSWORD="your-password" \\');
+  console.error('  PORT="3000" \\');
+  console.error('  mcp-zentao-bugs');
+  console.error('\n📚 更多信息请查看: https://github.com/your-username/mcp-zentao-bugs#readme');
+  process.exit(1);
 }
 
 const BASE = process.env.ZENTAO_BASE_URL;
